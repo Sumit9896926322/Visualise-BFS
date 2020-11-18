@@ -4,12 +4,14 @@ const mediumGrid = document.querySelector(".medium-grid");
 const largeGrid = document.querySelector(".large-grid");
 const start = document.querySelector(".start-visual");
 const reset = document.querySelector(".reset");
+const status = document.querySelector(".status");
 let board;
 let cols;
 let source = null, destination = null;
 let sRow = -1, sCol = -1;
 let dRow = -1, dCol = -1;
-let result = false;
+let dest = null;
+let reached = false;
 
 const gridGenerator = (gridType) => {
     let nRows = 0;
@@ -48,18 +50,19 @@ const gridGenerator = (gridType) => {
         let innerContent = `<div class = "row row-${i}">`;
         for (let j = 0; j < nCols; j++) {
 
-            innerContent += `<div class="col col-${i}-${j}" row=${i} col = ${j} style="height: ${height}px;width:${width}px;border: 2px solid  #b7a329; 
+            innerContent += `<div class="col col-${i}-${j}" row=${i} col = ${j} style="height: ${height}px;width:${width}px;border: 2px solid  #0a0349; 
             "></div>`;
         }
         innerContent += `</div>`;
         content += innerContent;
         grid.innerHTML = content;
     }
-    activateColumns();
+    activateColumns(height, width);
 }
 
 //Highlighting source and destination in board(when created).
-const activateColumns = () => {
+const activateColumns = (height, width) => {
+
     cols = document.querySelectorAll(".col");
     console.log(cols);
     for (let i = 0; i < cols.length; i++) {
@@ -67,7 +70,11 @@ const activateColumns = () => {
 
             if (!source) {
                 source = cols[i];
-                cols[i].style.backgroundColor = "green";
+                cols[i].style.backgroundColor = "red";
+                cols[i].style.background = "url('./assets/starting.jpg')";
+                cols[i].style.backgroundPosition = "center";
+                cols[i].style.backgroundRepeat = "no-repeat";
+                cols[i].style.backgroundSize = `${height}px ${width}px`;
 
                 sRow = cols[i].getAttribute("row");
                 sCol = cols[i].getAttribute("col");
@@ -75,21 +82,25 @@ const activateColumns = () => {
 
             }
             else if (!destination) {
+                destination = cols[i];
+
+                cols[i].style.background = "url('./assets/trophy.jpg')";
+                cols[i].style.backgroundPosition = "center";
+                cols[i].style.backgroundRepeat = "no-repeat";
+                cols[i].style.backgroundSize = `${height}px ${width}px`;
                 dRow = cols[i].getAttribute("row");
                 dCol = cols[i].getAttribute("col");
-                if (dRow == sRow && dCol == sCol) {
-                    alert("Source and destination can't be same");
-                    return;
-                }
-                destination = cols[i];
-                cols[i].style.backgroundColor = "red";
                 board[dRow][dCol] = 2;
+            } else {
+                let blockRow = parseInt(cols[i].getAttribute("row"));
+                let blockCol = parseInt(cols[i].getAttribute("col"));
+                cols[i].style.background = "url('./assets/danger.jpg')";
+                cols[i].style.backgroundPosition = "center";
+                cols[i].style.backgroundRepeat = "no-repeat";
+                cols[i].style.backgroundSize = `${height}px ${width}px`;
+                board[blockRow][blockCol] = -1;
+
             }
-            // } else {
-            //     cols[i].style.backgroundColor = "black";
-            //     board[cols[i].getAttribute("row")][cols[i].getAttribute("col")] = -1;
-            //     console.log(board);
-            // }
 
         });
     }
@@ -97,7 +108,6 @@ const activateColumns = () => {
 
 }
 const createVisitedArray = () => {
-    console.log(board);
     let boardRow = board.length;
     let boardCol = board[0].length;
 
@@ -105,9 +115,9 @@ const createVisitedArray = () => {
     for (let i = 0; i < vis.length; i++)
         vis[i] = new Array(boardCol);
 
-    for (let j = 0; j < vis.length; j++)
-        vis[j].fill(false);
-
+    for (let i = 0; i < vis.length; i++)
+        vis[i].fill(false);
+    // console.log(vis);
     return vis;
 }
 class Node {
@@ -119,71 +129,81 @@ class Node {
 
 const validNode = (vis, node) => {
 
-    if (node.row < 0 || node.row >= vis.length || node.col < 0 || node.col >= vis[0].length) {
+
+    if (node.row < 0 || node.row >= vis.length || node.col < 0 || node.col >= vis[0].length || board[node.row][node.col] == -1) {
         return false;
     }
-
-    if (vis[node.row][node.col])
-        return false;
 
     return true;
 }
 
 const bfs = async () => {
+    reached = false;
     let queue = [];
     let vis = createVisitedArray();
     vis[sRow][sCol] = true;
 
     queue.push(new Node(parseInt(sRow), parseInt(sCol)));
 
+
     while (queue.length > 0) {
         let curr = queue.shift();
-        if (curr.row == dRow && curr.col == dCol) {
-            //reaches destination
-            return;
+
+        console.log(curr);
+        if (board[curr.row][curr.col] == 2) {
+            reached = true;
+
+            destination.style.background = "url('./assets/winner.png')";
+            destination.style.backgroundPosition = "center";
+            destination.style.backgroundRepeat = "no-repeat";
+            destination.style.backgroundSize = "50px 50px";
+
+            // alert("Position found at" + curr.row + " " + curr.col);
+            return true;
         }
 
-        let rightNode = new Node(parseInt(curr.row), parseInt(curr.col) + 1);
+        let rightNode = new Node(curr.row, parseInt(curr.col) + 1);
 
-        let topNode = new Node(parseInt(curr.row) + 1, parseInt(curr.col));
+        let topNode = new Node(parseInt(curr.row) + 1, curr.col);
 
         let leftNode = new Node(parseInt(curr.row), parseInt(curr.col) - 1);
         let bottomNode = new Node(parseInt(curr.row) - 1, parseInt(curr.col));
 
-        if (validNode(vis, rightNode)) {
-            await fillColor(rightNode.row, rightNode.col).then(() => {
+        if (validNode(vis, rightNode) && !vis[rightNode.row][rightNode.col]) {
+            await fillColor(curr.row, curr.col).then(() => {
                 vis[rightNode.row][rightNode.col] = true;
                 queue.push(rightNode);
             });
 
         }
 
-        if (validNode(vis, topNode)) {
-            await fillColor(topNode.row, topNode.col).then(() => {
-
+        if (validNode(vis, topNode) && !vis[topNode.row][topNode.col]) {
+            await fillColor(curr.row, curr.col).then(() => {
                 vis[topNode.row][topNode.col] = true;
                 queue.push(topNode);
             });
 
         }
 
-        if (validNode(vis, leftNode)) {
-            await fillColor(leftNode.row, leftNode.col).then(() => {
-
+        if (validNode(vis, leftNode) && !vis[leftNode.row][leftNode.col]) {
+            await fillColor(curr.row, curr.col).then(() => {
+                console.log(2);
                 vis[leftNode.row][leftNode.col] = true;
                 queue.push(leftNode);
             });
 
         }
-        if (validNode(vis, bottomNode)) {
-            await fillColor(bottomNode.row, bottomNode.col).then(() => {
-
+        if (validNode(vis, bottomNode) && !vis[bottomNode.row][bottomNode.col]) {
+            await fillColor(curr.row, curr.col).then(() => {
+                console.log(3);
                 vis[bottomNode.row][bottomNode.col] = true;
                 queue.push(bottomNode);
             });
 
         }
+
     }
+    return false;
 
 }
 function sleep(ms) {
@@ -193,13 +213,19 @@ const fillColor = async (r, c) => {
     await sleep(10);
 
     for (let i = 0; i < cols.length; i++) {
-        if (cols[i].getAttribute("row") == dRow && cols[i].getAttribute("col") == dCol) {
-            return;
-        }
-        if (cols[i].getAttribute("row") == r && cols[i].getAttribute("col") == c) {
+
+        if (board[r][c] == 1) return;
+
+
+        if (parseInt(cols[i].getAttribute("row")) == r && parseInt(cols[i].getAttribute("col")) == c) {
             const elem = document.querySelector(`.col-${cols[i].getAttribute("row")}-${cols[i].getAttribute("col")}`);
 
-            cols[i].style.backgroundColor = "#0a0349";
+            // cols[i].style.backgroundColor = "#0a0349";
+            cols[i].style.background = "url('./assets/cartoon.png')";
+            cols[i].style.backgroundPosition = "center";
+            cols[i].style.backgroundRepeat = "no-repeat";
+            cols[i].style.backgroundSize = "50px 50px";
+
 
         }
     }
@@ -225,12 +251,16 @@ reset.addEventListener("click", () => {
     source = null, destination = null;
     grid.innerHTML = "";
 });
-start.addEventListener("click", () => {
+start.addEventListener("click", async () => {
 
     if (!source || !destination) {
         alert("Choose source and destination carefully");
     } else {
-        bfs();
+        let res = await bfs();
+        if (res) {
+            status.innerHTML = `Destination found at (${dRow},${dCol})`;
+        } else {
+            status.innerHTML = `Destination Not found`;
+        }
     }
 });
-

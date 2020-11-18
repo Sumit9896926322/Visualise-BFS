@@ -10,17 +10,15 @@
 #grid-container {
   display: flex;
   margin: 20px;
-  justify-content: center;
+  justify-content: space-evenly;
 }
 #grid {
-  width: 60%;
   height: 500px;
 }
 .algo-details {
   border: 2px solid #b7a329;
   background: #0a0349;
   color: white;
-  width: 30%;
   font-size: 15px;
   font-family: monospace;
   padding: 10px;
@@ -47,4 +45,15 @@
 }
 .mymove {
   background-color: blue;
+}
+.details {
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+}
+.status {
+  text-align: center;
+  color: #0a0349;
+  font-size: 40px;
+  font-family: monospace;
 }

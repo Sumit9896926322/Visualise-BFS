@@ -45,3 +45,6 @@
   display: flex;
   flex-direction: row;
 }
+.mymove {
+  background-color: blue;
+}

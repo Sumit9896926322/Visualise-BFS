@@ -11,7 +11,7 @@ let source = null, destination = null;
 let sRow = -1, sCol = -1;
 let dRow = -1, dCol = -1;
 let dest = null;
-let reached = false;
+
 
 const gridGenerator = (gridType) => {
     let nRows = 0;
@@ -64,13 +64,11 @@ const gridGenerator = (gridType) => {
 const activateColumns = (height, width) => {
 
     cols = document.querySelectorAll(".col");
-    console.log(cols);
     for (let i = 0; i < cols.length; i++) {
         cols[i].addEventListener("click", () => {
 
             if (!source) {
                 source = cols[i];
-                cols[i].style.backgroundColor = "red";
                 cols[i].style.background = "url('./assets/starting.jpg')";
                 cols[i].style.backgroundPosition = "center";
                 cols[i].style.backgroundRepeat = "no-repeat";
@@ -109,15 +107,19 @@ const activateColumns = (height, width) => {
 }
 const createVisitedArray = () => {
     let boardRow = board.length;
-    let boardCol = board[0].length;
+    let boardCol = board.length;
 
     let vis = new Array(boardRow);
     for (let i = 0; i < vis.length; i++)
-        vis[i] = new Array(boardCol);
+        vis[i] = new Array(boardCol).fill(false);
 
-    for (let i = 0; i < vis.length; i++)
-        vis[i].fill(false);
-    // console.log(vis);
+
+    // for (let i = 0; i < vis.length; i++) {
+    //     for (let j = 0; j < vis.length; j++) {
+    //         console.log(vis[i][j]);
+    //     }
+    // }
+
     return vis;
 }
 class Node {
@@ -129,16 +131,22 @@ class Node {
 
 const validNode = (vis, node) => {
 
-
-    if (node.row < 0 || node.row >= vis.length || node.col < 0 || node.col >= vis[0].length || board[node.row][node.col] == -1) {
+    if (node.row < 0 || node.row >= board.length || node.col < 0 || node.col >= board.length || board[node.row][node.col] == -1) {
+        // console.log(node.row, node.col + "index error");
         return false;
     }
+    if (vis[node.row][node.col]) {
+        // console.log(node.row, node.col + "true");
+        return false;
+
+    }
+    // console.log(node);
 
     return true;
 }
 
 const bfs = async () => {
-    reached = false;
+
     let queue = [];
     let vis = createVisitedArray();
     vis[sRow][sCol] = true;
@@ -149,9 +157,9 @@ const bfs = async () => {
     while (queue.length > 0) {
         let curr = queue.shift();
 
-        console.log(curr);
+        // console.log(curr.row, curr.col, vis[curr.row][curr.col]);
         if (board[curr.row][curr.col] == 2) {
-            reached = true;
+
 
             destination.style.background = "url('./assets/winner.png')";
             destination.style.backgroundPosition = "center";
@@ -159,66 +167,66 @@ const bfs = async () => {
             destination.style.backgroundSize = "50px 50px";
 
             // alert("Position found at" + curr.row + " " + curr.col);
-            return true;
+            return;
         }
 
-        let rightNode = new Node(curr.row, parseInt(curr.col) + 1);
-
-        let topNode = new Node(parseInt(curr.row) + 1, curr.col);
-
+        let rightNode = new Node(parseInt(curr.row), parseInt(curr.col) + 1);
+        let topNode = new Node(parseInt(curr.row) + 1, parseInt(curr.col));
         let leftNode = new Node(parseInt(curr.row), parseInt(curr.col) - 1);
         let bottomNode = new Node(parseInt(curr.row) - 1, parseInt(curr.col));
 
-        if (validNode(vis, rightNode) && !vis[rightNode.row][rightNode.col]) {
+        if (validNode(vis, topNode)) {
             await fillColor(curr.row, curr.col).then(() => {
-                vis[rightNode.row][rightNode.col] = true;
-                queue.push(rightNode);
-            });
 
-        }
-
-        if (validNode(vis, topNode) && !vis[topNode.row][topNode.col]) {
-            await fillColor(curr.row, curr.col).then(() => {
-                vis[topNode.row][topNode.col] = true;
                 queue.push(topNode);
+                vis[topNode.row][topNode.col] = true;
+            });
+
+        }
+        if (validNode(vis, rightNode)) {
+            await fillColor(curr.row, curr.col).then(() => {
+
+                queue.push(rightNode);
+                vis[rightNode.row][rightNode.col] = true;
             });
 
         }
 
-        if (validNode(vis, leftNode) && !vis[leftNode.row][leftNode.col]) {
+
+
+        if (validNode(vis, leftNode)) {
             await fillColor(curr.row, curr.col).then(() => {
-                console.log(2);
-                vis[leftNode.row][leftNode.col] = true;
                 queue.push(leftNode);
+                vis[leftNode.row][leftNode.col] = true;
             });
 
         }
-        if (validNode(vis, bottomNode) && !vis[bottomNode.row][bottomNode.col]) {
+        if (validNode(vis, bottomNode)) {
             await fillColor(curr.row, curr.col).then(() => {
-                console.log(3);
-                vis[bottomNode.row][bottomNode.col] = true;
+
                 queue.push(bottomNode);
+
+                vis[bottomNode.row][bottomNode.col] = true;
             });
 
         }
 
     }
-    return false;
+
 
 }
 function sleep(ms) {
     return new Promise(resolve => setTimeout(resolve, ms));
 }
 const fillColor = async (r, c) => {
+
+    console.log(r, c);
     await sleep(10);
-
     for (let i = 0; i < cols.length; i++) {
-
-        if (board[r][c] == 1) return;
 
 
         if (parseInt(cols[i].getAttribute("row")) == r && parseInt(cols[i].getAttribute("col")) == c) {
-            const elem = document.querySelector(`.col-${cols[i].getAttribute("row")}-${cols[i].getAttribute("col")}`);
+            const elem = document.querySelector(`.col-${parseInt(cols[i].getAttribute("row"))}-${parseInt(cols[i].getAttribute("col"))}`);
 
             // cols[i].style.backgroundColor = "#0a0349";
             cols[i].style.background = "url('./assets/cartoon.png')";
@@ -256,11 +264,7 @@ start.addEventListener("click", async () => {
     if (!source || !destination) {
         alert("Choose source and destination carefully");
     } else {
-        let res = await bfs();
-        if (res) {
-            status.innerHTML = `Destination found at (${dRow},${dCol})`;
-        } else {
-            status.innerHTML = `Destination Not found`;
-        }
+        bfs();
+
     }
 });
